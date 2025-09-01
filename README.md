@@ -1,7 +1,6 @@
 # EmotionIQ – AI-Powered Sentiment Analysis
 
-EmotionIQ is a Flask-based web application that analyzes sentiment from **text input**, **uploaded files** (TXT, PDF, DOCX), or **web pages**.  
-It generates real-time sentiment insights and allows you to download detailed PDF reports.
+EmotionIQ is a Flask-based web application that analyzes sentiment from **text input**, **uploaded files** (TXT, PDF, DOCX), or **web pages**. It generates real-time sentiment insights and allows you to download detailed PDF reports.
 
 ---
 
@@ -12,7 +11,6 @@ It generates real-time sentiment insights and allows you to download detailed PD
 - **File Support** – TXT, PDF, DOCX extraction with clean text processing  
 - **Web Scraping** – fetch content from URLs using `requests` + `BeautifulSoup`  
 - **Report Generation** – export sentiment reports as PDFs with ReportLab  
-- **CORS Support** – ready for frontend integration  
 - **Secure Uploads** – only valid file types are allowed and auto-deleted after processing  
 
 ---
@@ -34,7 +32,6 @@ It generates real-time sentiment insights and allows you to download detailed PD
    ```bash
    git clone https://github.com/yourusername/EmotionIQ.git
    cd emotioniq
-````
 
 2. **Install dependencies**
 
@@ -97,6 +94,4 @@ It generates real-time sentiment insights and allows you to download detailed PD
 ## License
 
 This project is licensed under the MIT License.
-
-```
 
