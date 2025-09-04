@@ -3,497 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentiment Analyzer Pro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <title>EmotionIQ - Sentiment Analyzer</title>
     <style>
-        /* CLEAN AND PROFESSIONAL STYLING */
-        :root {
-            --primary-color: #4f46e5;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --dark-color: #1f2937;
-            --light-bg: #f8fafc;
-        }
-
         body {
-            background: var(--light-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
         }
 
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+        header {
+            background: #4f46e5;
             color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-        }
-
-        .nav-pills .nav-link {
-            border-radius: 25px;
-            margin-right: 10px;
-        }
-
-        .nav-pills .nav-link.active {
-            background: var(--primary-color);
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-        }
-
-        .btn-primary:hover {
-            background: #3730a3;
-            transform: translateY(-1px);
-        }
-
-        .result-card {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            margin-top: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .sentiment-display {
+            padding: 15px;
             text-align: center;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
         }
 
-        .sentiment-emoji {
-            font-size: 4rem;
-            margin-bottom: 1rem;
+        .container {
+            max-width: 700px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
         }
 
-        .sentiment-score {
-            font-size: 2.5rem;
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        label {
             font-weight: bold;
-            margin: 1rem 0;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
+        textarea, input[type="url"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
 
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            text-align: center;
-            border-left: 4px solid var(--primary-color);
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #3730a3;
         }
 
         .loading {
-            display: none;
             text-align: center;
-            margin: 2rem 0;
+            margin: 15px 0;
+            display: none;
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+            display: none;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .stat-box {
+            margin: 8px 0;
         }
 
-        .alert {
-            border-radius: 10px;
-            border: none;
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
+        #error-alert {
+            margin-top: 15px;
+            color: white;
+            background: #e74c3c;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <!-- HEADER -->
-    <div class="header">
-    <div class="container text-center">
-        <h1><i class="fas fa-brain me-3"></i>EmotionIQ</h1>
-        <p class="lead">AI-powered sentiment intelligence for text, documents, and websites</p>
-        </div>
-    </div>
+    <header>
+        <h1>EmotionIQ</h1>
+        <p>AI-powered Sentiment Analysis</p>
+    </header>
+
     <div class="container">
-        <!-- INPUT SECTION -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h3 class="card-title mb-4">
-                    <i class="fas fa-chart-line me-2"></i>Choose Analysis Method
-                </h3>
+        <h2>Choose Analysis Method</h2>
 
-                <!-- NAVIGATION TABS -->
-                <ul class="nav nav-pills mb-4" id="analysisTab" role="tablist">
-                    <li class="nav-item">
-                        <button class="nav-link active" id="text-tab" data-bs-toggle="pill" 
-                                data-bs-target="#text-panel" type="button">
-                            <i class="fas fa-keyboard me-2"></i>Text Input
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="url-tab" data-bs-toggle="pill" 
-                                data-bs-target="#url-panel" type="button">
-                            <i class="fas fa-globe me-2"></i>Website URL
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="file-tab" data-bs-toggle="pill" 
-                                data-bs-target="#file-panel" type="button">
-                            <i class="fas fa-file-upload me-2"></i>File Upload
-                        </button>
-                    </li>
-                </ul>
+        <!-- Text Input -->
+        <form id="text-form">
+            <label>Enter Text:</label>
+            <textarea id="text-input" rows="5" placeholder="Type something here..."></textarea>
+            <button type="submit">Analyze Text</button>
+        </form>
 
-                <!-- TAB CONTENT -->
-                <div class="tab-content">
-                    <!-- TEXT INPUT -->
-                    <div class="tab-pane fade show active" id="text-panel">
-                        <form id="text-form">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Enter Text for Analysis</label>
-                                <textarea class="form-control" id="text-input" rows="6" 
-                                        placeholder="Type your text here..." required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-search me-2"></i>Analyze Text
-                            </button>
-                        </form>
-                    </div>
+        <hr>
 
-                    <!-- URL INPUT -->
-                    <div class="tab-pane fade" id="url-panel">
-                        <form id="url-form">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Website URL</label>
-                                <input type="url" class="form-control" id="url-input" 
-                                       placeholder="https://example.com" required>
-                                <div class="form-text">Enter a website URL to analyze its content</div>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-globe me-2"></i>Analyze Website
-                            </button>
-                        </form>
-                    </div>
+        <!-- URL Input -->
+        <form id="url-form">
+            <label>Website URL:</label>
+            <input type="url" id="url-input" placeholder="https://example.com">
+            <button type="submit">Analyze Website</button>
+        </form>
 
-                    <!-- FILE UPLOAD -->
-                    <div class="tab-pane fade" id="file-panel">
-                        <form id="file-form" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Upload Document</label>
-                                <input type="file" class="form-control" id="file-input" 
-                                       accept=".txt,.pdf,.docx" required>
-                                <div class="form-text">Supported: TXT, PDF, DOCX (Max: 16MB)</div>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-file-alt me-2"></i>Analyze Document
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <hr>
 
-        <!-- LOADING ANIMATION -->
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p class="text-muted">Analyzing content...</p>
-        </div>
+        <!-- File Upload -->
+        <form id="file-form" enctype="multipart/form-data">
+            <label>Upload Document:</label>
+            <input type="file" id="file-input" accept=".txt,.pdf,.docx">
+            <button type="submit">Analyze File</button>
+        </form>
 
-        <!-- RESULTS SECTION -->
-        <div id="results" style="display: none;">
-            <!-- MAIN SENTIMENT DISPLAY -->
-            <div class="sentiment-display" id="sentiment-display">
-                <div class="sentiment-emoji" id="sentiment-emoji">😊</div>
-                <h2 id="sentiment-label">Positive</h2>
-                <div class="sentiment-score" id="sentiment-score">+0.75</div>
-                <div class="badge bg-success fs-6" id="confidence-badge">High Confidence</div>
-            </div>
+        <!-- Loading -->
+        <div class="loading" id="loading">Analyzing...</div>
 
-            <!-- STATISTICS GRID -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <i class="fas fa-chart-line text-primary fs-2 mb-2"></i>
-                    <h6 class="text-muted">Polarity Score</h6>
-                    <div class="fs-4 fw-bold" id="polarity-value">0.75</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-balance-scale text-info fs-2 mb-2"></i>
-                    <h6 class="text-muted">Subjectivity</h6>
-                    <div class="fs-4 fw-bold" id="subjectivity-value">0.45</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-file-word text-success fs-2 mb-2"></i>
-                    <h6 class="text-muted">Word Count</h6>
-                    <div class="fs-4 fw-bold" id="word-count">245</div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-font text-warning fs-2 mb-2"></i>
-                    <h6 class="text-muted">Characters</h6>
-                    <div class="fs-4 fw-bold" id="char-count">1024</div>
-                </div>
-            </div>
+        <!-- Error -->
+        <div id="error-alert"><span id="error-message"></span></div>
 
-            <!-- CONTENT PREVIEW AND DOWNLOAD -->
-            <div class="result-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5><i class="fas fa-eye me-2"></i>Analysis Summary</h5>
-                    <button class="btn btn-outline-primary" id="download-btn">
-                        <i class="fas fa-download me-2"></i>Download Report
-                    </button>
-                </div>
-                <div class="alert alert-light">
-                    <p class="mb-2"><strong>Details:</strong> <span id="analysis-details"></span></p>
-                    <p class="mb-0"><strong>Content Preview:</strong></p>
-                    <div class="mt-2 p-3 bg-white rounded" id="content-preview"></div>
-                </div>
-            </div>
-        </div>
+        <!-- Results -->
+        <div id="results">
+            <h3>Analysis Results</h3>
+            <p><b>Sentiment:</b> <span id="sentiment-label"></span> <span id="sentiment-emoji"></span></p>
+            <p><b>Polarity Score:</b> <span id="polarity-value"></span></p>
+            <p><b>Subjectivity:</b> <span id="subjectivity-value"></span></p>
+            <p><b>Confidence:</b> <span id="confidence-badge"></span></p>
+            <div class="stat-box"><b>Word Count:</b> <span id="word-count"></span></div>
+            <div class="stat-box"><b>Characters:</b> <span id="char-count"></span></div>
 
-        <!-- ERROR DISPLAY -->
-        <div class="alert alert-danger" id="error-alert" style="display: none;">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <span id="error-message"></span>
+            <h4>Content Preview</h4>
+            <p id="content-preview"></p>
+
+            <button id="download-btn">Download Report</button>
         </div>
     </div>
-
-    <!-- BOOTSTRAP JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // SIMPLE BUT EFFECTIVE JAVASCRIPT - NO OVERCOMPLICATION
         class SentimentAnalyzer {
             constructor() {
-                this.initializeEventListeners();
                 this.currentAnalysis = null;
+                this.initEvents();
             }
 
-            initializeEventListeners() {
-                // Form submissions
-                document.getElementById('text-form').addEventListener('submit', (e) => {
+            initEvents() {
+                document.getElementById('text-form').addEventListener('submit', e => {
                     e.preventDefault();
-                    this.analyzeText();
+                    this.analyze('text');
                 });
 
-                document.getElementById('url-form').addEventListener('submit', (e) => {
+                document.getElementById('url-form').addEventListener('submit', e => {
                     e.preventDefault();
-                    this.analyzeURL();
+                    this.analyze('url');
                 });
 
-                document.getElementById('file-form').addEventListener('submit', (e) => {
+                document.getElementById('file-form').addEventListener('submit', e => {
                     e.preventDefault();
-                    this.analyzeFile();
+                    this.analyze('file');
                 });
 
-                // Download button
                 document.getElementById('download-btn').addEventListener('click', () => {
                     this.downloadReport();
                 });
             }
 
-            async analyzeText() {
-                const text = document.getElementById('text-input').value.trim();
-                if (!text) {
-                    this.showError('Please enter some text to analyze');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('analysis_type', 'text');
-                formData.append('text', text);
-
-                await this.performAnalysis(formData);
-            }
-
-            async analyzeURL() {
-                const url = document.getElementById('url-input').value.trim();
-                if (!url) {
-                    this.showError('Please enter a URL');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('analysis_type', 'url');
-                formData.append('url', url);
-
-                await this.performAnalysis(formData);
-            }
-
-            async analyzeFile() {
-                const fileInput = document.getElementById('file-input');
-                const file = fileInput.files[0];
-
-                if (!file) {
-                    this.showError('Please select a file');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('analysis_type', 'file');
-                formData.append('file', file);
-
-                await this.performAnalysis(formData);
-            }
-
-            async performAnalysis(formData) {
+            async analyze(type) {
                 this.showLoading();
                 this.hideError();
                 this.hideResults();
 
-                try {
-                    const response = await fetch('/analyze', {
-                        method: 'POST',
-                        body: formData
-                    });
+                const formData = new FormData();
+                formData.append('analysis_type', type);
 
+                if (type === 'text') {
+                    const text = document.getElementById('text-input').value.trim();
+                    if (!text) return this.showError("Please enter some text.");
+                    formData.append('text', text);
+                }
+                if (type === 'url') {
+                    const url = document.getElementById('url-input').value.trim();
+                    if (!url) return this.showError("Please enter a URL.");
+                    formData.append('url', url);
+                }
+                if (type === 'file') {
+                    const file = document.getElementById('file-input').files[0];
+                    if (!file) return this.showError("Please select a file.");
+                    formData.append('file', file);
+                }
+
+                try {
+                    const response = await fetch('/analyze', { method: 'POST', body: formData });
                     const data = await response.json();
 
-                    if (data.status === 'success') {
+                    if (data.status === "success") {
                         this.currentAnalysis = data;
                         this.displayResults(data);
                     } else {
-                        this.showError(data.error || 'Analysis failed');
+                        this.showError(data.error || "Analysis failed.");
                     }
-                } catch (error) {
-                    this.showError('Network error: ' + error.message);
+                } catch (err) {
+                    this.showError("Error: " + err.message);
                 } finally {
                     this.hideLoading();
                 }
             }
 
             displayResults(data) {
-                const analysis = data.analysis;
-
-                // Update sentiment display
-                document.getElementById('sentiment-emoji').textContent = analysis.emoji;
-                document.getElementById('sentiment-label').textContent = analysis.sentiment;
-                document.getElementById('sentiment-score').textContent = 
-                    (analysis.polarity >= 0 ? '+' : '') + analysis.polarity;
-
-                // Update sentiment display background color
-                const sentimentDisplay = document.getElementById('sentiment-display');
-                sentimentDisplay.style.background = analysis.color + '20';
-                sentimentDisplay.style.border = '2px solid ' + analysis.color;
-
-                // Update confidence badge
-                const confidenceBadge = document.getElementById('confidence-badge');
-                confidenceBadge.textContent = analysis.confidence + ' Confidence';
-                confidenceBadge.className = 'badge fs-6 ' + this.getConfidenceBadgeClass(analysis.confidence);
-
-                // Update statistics
-                document.getElementById('polarity-value').textContent = analysis.polarity;
-                document.getElementById('subjectivity-value').textContent = analysis.subjectivity;
-                document.getElementById('word-count').textContent = analysis.word_count;
-                document.getElementById('char-count').textContent = analysis.character_count;
-
-                // Update details and preview
-                document.getElementById('analysis-details').textContent = analysis.details;
+                const a = data.analysis;
+                document.getElementById('sentiment-label').textContent = a.sentiment;
+                document.getElementById('sentiment-emoji').textContent = a.emoji;
+                document.getElementById('polarity-value').textContent = a.polarity;
+                document.getElementById('subjectivity-value').textContent = a.subjectivity;
+                document.getElementById('confidence-badge').textContent = a.confidence;
+                document.getElementById('word-count').textContent = a.word_count;
+                document.getElementById('char-count').textContent = a.character_count;
                 document.getElementById('content-preview').textContent = data.text;
-
-                // Show results
                 document.getElementById('results').style.display = 'block';
             }
 
             async downloadReport() {
-                if (!this.currentAnalysis) {
-                    this.showError('No analysis data available for download');
-                    return;
-                }
-
+                if (!this.currentAnalysis) return this.showError("No data to download.");
                 try {
                     const response = await fetch('/download-report', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            text: this.currentAnalysis.text,
-                            analysis: this.currentAnalysis.analysis
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.currentAnalysis)
                     });
-
                     if (response.ok) {
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
-                        a.style.display = 'none';
                         a.href = url;
-                        a.download = 'sentiment_analysis_report.pdf';
+                        a.download = "sentiment_report.pdf";
                         document.body.appendChild(a);
                         a.click();
+                        a.remove();
                         window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
                     } else {
-                        this.showError('Failed to generate report');
+                        this.showError("Failed to download report.");
                     }
-                } catch (error) {
-                    this.showError('Download failed: ' + error.message);
+                } catch (err) {
+                    this.showError("Download error: " + err.message);
                 }
             }
 
-            getConfidenceBadgeClass(confidence) {
-                switch(confidence) {
-                    case 'High': return 'bg-success';
-                    case 'Medium': return 'bg-warning text-dark';
-                    default: return 'bg-secondary';
-                }
+            showLoading() { document.getElementById('loading').style.display = 'block'; }
+            hideLoading() { document.getElementById('loading').style.display = 'none'; }
+            showError(msg) { 
+                document.getElementById('error-message').textContent = msg;
+                document.getElementById('error-alert').style.display = 'block'; 
             }
-
-            showLoading() {
-                document.getElementById('loading').style.display = 'block';
-            }
-
-            hideLoading() {
-                document.getElementById('loading').style.display = 'none';
-            }
-
-            showError(message) {
-                document.getElementById('error-message').textContent = message;
-                document.getElementById('error-alert').style.display = 'block';
-            }
-
-            hideError() {
-                document.getElementById('error-alert').style.display = 'none';
-            }
-
-            hideResults() {
-                document.getElementById('results').style.display = 'none';
-            }
+            hideError() { document.getElementById('error-alert').style.display = 'none'; }
+            hideResults() { document.getElementById('results').style.display = 'none'; }
         }
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', () => {
-            new SentimentAnalyzer();
-        });
+        document.addEventListener('DOMContentLoaded', () => new SentimentAnalyzer());
     </script>
 </body>
 </html>
