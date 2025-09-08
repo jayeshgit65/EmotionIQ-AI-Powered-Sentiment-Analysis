@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotionIQ - Sentiment Analyzer</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #4f46e5;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        textarea,
+        input[type="url"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3730a3;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 15px 0;
+            display: none;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+            display: none;
+        }
+
+        .stat-box {
+            margin: 8px 0;
+        }
+
+        #error-alert {
+            margin-top: 15px;
+            color: white;
+            background: #e74c3c;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>EmotionIQ</h1>
+        <p>AI-powered Sentiment Analysis</p>
+    </header>
+
+    <div class="container">
+        <h2>Analyze Text, File, or URL</h2>
+
+        <form id="text-form">
+            <label>Enter Text:</label>
+            <textarea id="text-input" rows="5" placeholder="Type here..."></textarea>
+            <button type="submit">Analyze Text</button>
+        </form>
+
+        <hr>
+        <form id="url-form">
+            <label>Website URL:</label>
+            <input type="url" id="url-input" placeholder="https://example.com">
+            <button type="submit">Analyze Website</button>
+        </form>
+
+        <hr>
+        <form id="file-form" enctype="multipart/form-data">
+            <label>Upload File:</label>
+            <input type="file" id="file-input" accept=".txt,.pdf,.docx">
+            <button type="submit">Analyze File</button>
+        </form>
+
+        <div class="loading" id="loading">Analyzing...</div>
+        <div id="error-alert"><span id="error-message"></span></div>
+
+        <div id="results">
+            <h3>Analysis Results</h3>
+            <p><b>Sentiment:</b> <span id="sentiment-label"></span> <span id="sentiment-emoji"></span></p>
+            <p><b>TextBlob Polarity:</b> <span id="polarity-value"></span></p>
+            <p><b>TextBlob Subjectivity:</b> <span id="subjectivity-value"></span></p>
+            <p><b>VADER Compound:</b> <span id="vader-value"></span></p>
+            <p><b>Confidence:</b> <span id="confidence-badge"></span></p>
+            <div class="stat-box"><b>Word Count:</b> <span id="word-count"></span></div>
+            <div class="stat-box"><b>Characters:</b> <span id="char-count"></span></div>
+            <h4>Content Preview</h4>
+            <p id="content-preview"></p>
+            <button id="download-btn">Download Report</button>
+        </div>
+    </div>
+
+    <script>
+        class SentimentAnalyzer {
+            constructor() { this.currentAnalysis = null; this.initEvents(); }
+            initEvents() {
+                document.getElementById('text-form').addEventListener('submit', e => { e.preventDefault(); this.analyze('text'); });
+                document.getElementById('url-form').addEventListener('submit', e => { e.preventDefault(); this.analyze('url'); });
+                document.getElementById('file-form').addEventListener('submit', e => { e.preventDefault(); this.analyze('file'); });
+                document.getElementById('download-btn').addEventListener('click', () => { this.downloadReport(); });
+            }
+            async analyze(type) {
+                this.showLoading(); this.hideError(); this.hideResults();
+                const formData = new FormData();
+                formData.append('analysis_type', type);
+                if (type === 'text') { const text = document.getElementById('text-input').value.trim(); if (!text) return this.showError("Please enter text."); formData.append('text', text); }
+                if (type === 'url') { const url = document.getElementById('url-input').value.trim(); if (!url) return this.showError("Please enter a URL."); formData.append('url', url); }
+                if (type === 'file') { const file = document.getElementById('file-input').files[0]; if (!file) return this.showError("Please select a file."); formData.append('file', file); }
+                try {
+                    const response = await fetch('/analyze', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.status === "success") { this.currentAnalysis = data; this.displayResults(data); } else { this.showError(data.error || "Analysis failed."); }
+                } catch (err) { this.showError("Error: " + err.message); }
+                finally { this.hideLoading(); }
+            }
+            displayResults(data) {
+                const a = data.analysis;
+                document.getElementById('sentiment-label').textContent = a.sentiment;
+                document.getElementById('sentiment-emoji').textContent = a.emoji;
+                document.getElementById('polarity-value').textContent = a.polarity;
+                document.getElementById('subjectivity-value').textContent = a.subjectivity;
+                document.getElementById('vader-value').textContent = a.vader_compound;
+                document.getElementById('confidence-badge').textContent = a.confidence;
+                document.getElementById('word-count').textContent = a.word_count;
+                document.getElementById('char-count').textContent = a.character_count;
+                document.getElementById('content-preview').textContent = data.text;
+                document.getElementById('results').style.display = 'block';
+            }
+            async downloadReport() { if (!this.currentAnalysis) return this.showError("No data to download."); try { const response = await fetch('/download-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.currentAnalysis) }); if (response.ok) { const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "sentiment_report.pdf"; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } else { this.showError("Failed to download report."); } } catch (err) { this.showError("Download error: " + err.message); } }
+            showLoading() { document.getElementById('loading').style.display = 'block'; }
+            hideLoading() { document.getElementById('loading').style.display = 'none'; }
+            showError(msg) { document.getElementById('error-message').textContent = msg; document.getElementById('error-alert').style.display = 'block'; }
+            hideError() { document.getElementById('error-alert').style.display = 'none'; }
+            hideResults() { document.getElementById('results').style.display = 'none'; }
+        }
+        document.addEventListener('DOMContentLoaded', () => new SentimentAnalyzer());
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,10 @@
+flask
+flask-cors
+textblob
+nltk
+requests
+beautifulsoup4
+python-docx
+PyPDF2
+reportlab
+vaderSentiment
