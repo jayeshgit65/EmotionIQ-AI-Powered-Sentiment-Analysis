@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EmotionIQ - Analysis Results</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #6dd5ed, #2193b0);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    /* .container {
+      max-width: 1000px;
+      margin: 50px auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0px 6px 15px rgba(0,0,0,0.2);
+    } */
+    .container {
+    max-width: 1000px;
+    margin: 50px auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    border: 1px solid #ddd; 
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.15); 
+    }
+
+    h2 {
+      text-align: center;
+      color: #2193b0;
+      margin-bottom: 25px;
+    }
+
+    .row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background: #fafafa;
+      border-radius: 10px;
+      padding: 20px;
+      flex: 1;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h3 {
+      margin-top: 0;
+    }
+
+    .btns {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    a.btn {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #fff;
+      transition: background 0.3s ease;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background: #565e64;
+    }
+
+    .btn-success {
+      background: #28a745;
+    }
+
+    .btn-success:hover {
+      background: #1e7e34;
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Analysis Results</h2>
+    <div class="row">
+
+      <!-- Left Card -->
+      <div class="card" style="flex: 2;">
+        <h3 style="color: {{ result.color }};">Sentiment: {{ result.sentiment }}</h3>
+        <p><strong>Emotion:</strong> {{ result.emotion }}</p>
+        <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
+        <p><strong>Word Count:</strong> {{ result.word_count }}</p>
+        <p><strong>Character Count:</strong> {{ result.char_count }}</p>
+
+        <h4>Text Preview:</h4>
+        <p>{{ result.preview }}</p>
+
+        <div class="btns">
+          <a href="/" class="btn btn-secondary">Analyze Again</a>
+          <a href="/download" class="btn btn-success">Download PDF Report</a>
+        </div>
+      </div>
+
+      <!-- Right Card -->
+      <div class="card" style="flex: 1;">
+        <h4 style="text-align:center;">Confidence Chart</h4>
+        <canvas id="confidenceChart" width="250" height="120"></canvas>
+      </div>
+    </div>
+
+    <footer>
+      © 2025 EmotionIQ | Developed by <strong>Jayesh Nikumbh</strong>
+    </footer>
+  </div>
+
+  <!-- Pure Canvas Chart -->
+  <script>
+    const canvas = document.getElementById("confidenceChart");
+    const ctx = canvas.getContext("2d");
+
+    const confidence = {{ result.confidence }};
+    const color = "{{ result.color }}";
+
+    // Draw background bar
+    ctx.fillStyle = "#eee";
+    ctx.fillRect(20, 60, 200, 20);
+
+    // Draw confidence bar
+    ctx.fillStyle = color;
+    ctx.fillRect(20, 60, (confidence / 100) * 200, 20);
+
+    // Text
+    ctx.fillStyle = "#000";
+    ctx.font = "14px Segoe UI";
+    ctx.fillText("Confidence: " + confidence + "%", 20, 40);
+  </script>
+</body>
+</html>

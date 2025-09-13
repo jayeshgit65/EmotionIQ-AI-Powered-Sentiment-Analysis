@@ -1,234 +1,158 @@
-from flask import Flask, render_template, request, jsonify, send_file
-from flask_cors import CORS
+from flask import Flask, render_template, request, redirect, url_for, send_file, session
+from werkzeug.utils import secure_filename
+import os, io, re
 from textblob import TextBlob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import os
-from werkzeug.utils import secure_filename
-from docx import Document
-from PyPDF2 import PdfReader
-from datetime import datetime
-from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
-import nltk
-
-# Download NLTK data
-try:
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
-except:
-    pass
+import docx
+import PyPDF2
 
 app = Flask(__name__)
-CORS(app)
-app.secret_key = 'sentiment-analyzer-2025'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.secret_key = "secretkey"  # needed for session storage
+app.config["UPLOAD_FOLDER"] = "uploads"
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx'}
+ALLOWED_EXTENSIONS = {"txt", "pdf", "docx"}
 
-vader_analyzer = SentimentIntensityAnalyzer()
+analyzer = SentimentIntensityAnalyzer()
 
+# Helpers
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extract_text_from_docx(file_path):
-    doc = Document(file_path)
-    return ' '.join([p.text for p in doc.paragraphs])
-
-def extract_text_from_pdf(file_path):
-    try:
-        reader = PdfReader(file_path)
-        text = ' '.join([page.extract_text() for page in reader.pages])
-        return text
-    except:
-        return ""
-
-def extract_url_content(url):
-    try:
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        for script in soup(["script", "style", "nav", "header", "footer"]):
-            script.decompose()
-        text = ' '.join(soup.get_text(separator=' ', strip=True).split())
-        return text[:5000] if len(text) > 5000 else text
-    except:
-        return ""
-
-def analyze_sentiment(text):
-    """Multimodal sentiment analysis using TextBlob + VADER"""
-    try:
-        # TextBlob Analysis
-        tb = TextBlob(text)
-        polarity = tb.sentiment.polarity
-        subjectivity = tb.sentiment.subjectivity
-
-        # VADER Analysis
-        vader_scores = vader_analyzer.polarity_scores(text)
-        compound = vader_scores['compound']
-
-        # Determine overall sentiment (TextBlob + VADER)
-        overall = "Neutral"
-        if compound >= 0.05 or polarity > 0.1:
-            overall = "Positive"
-            emoji = "😊"
-            color = "#28a745"
-        elif compound <= -0.05 or polarity < -0.1:
-            overall = "Negative"
-            emoji = "😞"
-            color = "#dc3545"
-        else:
-            overall = "Neutral"
-            emoji = "😐"
-            color = "#6c757d"
-
-        # Confidence
-        confidence = max(abs(polarity), abs(compound))
-        if confidence > 0.5:
-            confidence_level = "High"
-        elif confidence > 0.2:
-            confidence_level = "Medium"
-        else:
-            confidence_level = "Low"
-
-        words = text.split()
-
-        return {
-            "sentiment": overall,
-            "emoji": emoji,
-            "color": color,
-            "polarity": round(polarity, 3),
-            "subjectivity": round(subjectivity, 3),
-            "vader_compound": round(compound, 3),
-            "confidence": confidence_level,
-            "word_count": len(words),
-            "character_count": len(text),
-            "details": f"The text shows {overall.lower()} sentiment with {confidence_level.lower()} confidence."
-        }
-    except Exception as e:
-        return {"error": f"Analysis failed: {str(e)}"}
-
-def generate_report_pdf(text, analysis):
-    try:
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
-        elements = []
-
-        elements.append(Paragraph("Sentiment Analysis Report", styles['Title']))
-        elements.append(Spacer(1, 15))
-        elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
-        elements.append(Spacer(1, 10))
-
-        results_title = Paragraph("Analysis Results", styles['Heading2'])
-        elements.append(results_title)
-        elements.append(Paragraph(f"Sentiment: {analysis['sentiment']} {analysis['emoji']}", styles['Normal']))
-        elements.append(Paragraph(f"TextBlob Polarity: {analysis['polarity']}", styles['Normal']))
-        elements.append(Paragraph(f"TextBlob Subjectivity: {analysis['subjectivity']}", styles['Normal']))
-        elements.append(Paragraph(f"VADER Compound Score: {analysis['vader_compound']}", styles['Normal']))
-        elements.append(Paragraph(f"Confidence: {analysis['confidence']}", styles['Normal']))
-        elements.append(Spacer(1, 15))
-
-        elements.append(Paragraph("Original Text Preview", styles['Heading2']))
-        text_preview = text[:1000] + "..." if len(text) > 1000 else text
-        elements.append(Paragraph(text_preview, styles['Normal']))
-
-        doc.build(elements)
-        buffer.seek(0)
-        return buffer
-    except:
-        return None
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    try:
+def extract_text_from_file(filepath):
+    if filepath.endswith(".txt"):
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read()
+    elif filepath.endswith(".docx"):
+        doc = docx.Document(filepath)
+        return " ".join([para.text for para in doc.paragraphs])
+    elif filepath.endswith(".pdf"):
         text = ""
-        analysis_type = request.form.get('analysis_type', 'text')
+        with open(filepath, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                text += page.extract_text() or ""
+        return text
+    return ""
 
-        if analysis_type == 'url':
-            url = request.form.get('url', '').strip()
-            if not url:
-                return jsonify({"error": "No URL provided", "status": "error"}), 400
-            text = extract_url_content(url)
-            if not text:
-                return jsonify({"error": "Failed to extract URL content", "status": "error"}), 400
-
-        elif analysis_type == 'file':
-            if 'file' not in request.files:
-                return jsonify({"error": "No file provided", "status": "error"}), 400
-            file = request.files['file']
-            if not file or not allowed_file(file.filename):
-                return jsonify({"error": "Invalid file type", "status": "error"}), 400
-
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-
-            try:
-                if filename.lower().endswith('.txt'):
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        text = f.read()
-                elif filename.lower().endswith('.docx'):
-                    text = extract_text_from_docx(file_path)
-                elif filename.lower().endswith('.pdf'):
-                    text = extract_text_from_pdf(file_path)
-            finally:
-                os.remove(file_path)
-
-        else:
-            text = request.form.get('text', '').strip()
-
-        if not text or len(text) < 5:
-            return jsonify({"error": "Provide more text for analysis", "status": "error"}), 400
-
-        analysis = analyze_sentiment(text)
-        if "error" in analysis:
-            return jsonify({"error": analysis["error"], "status": "error"}), 500
-
-        return jsonify({
-            "status": "success",
-            "text": text[:500] + "..." if len(text) > 500 else text,
-            "analysis": analysis,
-            "analysis_type": analysis_type
-        })
-
-    except Exception as e:
-        return jsonify({"error": f"Analysis failed: {str(e)}", "status": "error"}), 500
-
-@app.route('/download-report', methods=['POST'])
-def download_report():
+def extract_text_from_url(url):
     try:
-        data = request.get_json()
-        text = data.get('text', '')
-        analysis = data.get('analysis', {})
+        r = requests.get(url, timeout=5)
+        soup = BeautifulSoup(r.text, "html.parser")
+        for s in soup(["script", "style"]):
+            s.extract()
+        return soup.get_text(separator=" ", strip=True)     
+    except Exception:
+        return ""
 
-        if not text or not analysis:
-            return jsonify({"error": "No data provided for report"}), 400
+def analyze_text(text):
+    blob = TextBlob(text)
+    vader_scores = analyzer.polarity_scores(text)
+    compound = vader_scores["compound"]
 
-        pdf_buffer = generate_report_pdf(text, analysis)
-        if not pdf_buffer:
-            return jsonify({"error": "Failed to generate report"}), 500
+    if compound >= 0.05:
+        sentiment = "Positive"
+        color = "green"
+    elif compound <= -0.05:
+        sentiment = "Negative"
+        color = "red"
+    else:
+        sentiment = "Neutral"
+        color = "gray"
 
-        filename = f"sentiment_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        return send_file(
-            pdf_buffer,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/pdf'
-        )
-    except:
-        return jsonify({"error": "Download failed"}), 500
+    confidence = int(abs(compound) * 100)
+
+    # Simple emotion mapping
+    if sentiment == "Positive":
+        emotion = "Joy / Satisfaction"
+    elif sentiment == "Negative":
+        emotion = "Anger / Sadness"
+    else:
+        emotion = "Calm / Neutral"
+
+    return {
+        "sentiment": sentiment,
+        "color": color,
+        "confidence": confidence,
+        "emotion": emotion,
+        "word_count": len(text.split()),
+        "char_count": len(text),
+        "preview": text[:300] + ("..." if len(text) > 300 else "")
+    }
+
+def generate_pdf(data):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("Sentiment Analysis Report", styles["Title"]))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph(f"Sentiment: {data['sentiment']}", styles["Normal"]))
+    story.append(Paragraph(f"Emotion Detected: {data['emotion']}", styles["Normal"]))
+    story.append(Paragraph(f"Confidence: {data['confidence']}%", styles["Normal"]))
+    story.append(Paragraph(f"Word Count: {data['word_count']}", styles["Normal"]))
+    story.append(Paragraph(f"Character Count: {data['char_count']}", styles["Normal"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Text Preview:", styles["Heading2"]))
+    story.append(Paragraph(data["preview"], styles["Normal"]))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# Routes
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        text = None
+        if "text" in request.form and request.form["text"].strip():
+            text = request.form["text"].strip()
+        elif "url" in request.form and request.form["url"].strip():
+            text = extract_text_from_url(request.form["url"].strip())
+        elif "file" in request.files:
+            file = request.files["file"]
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                file.save(filepath)
+                text = extract_text_from_file(filepath)
+                os.remove(filepath)
+
+        if not text or text.strip() == "":
+            return render_template("index.html", error="No valid input provided.")
+
+        result = analyze_text(text)
+        session["result"] = result
+        return redirect(url_for("results"))
+
+    return render_template("index.html")
+
+@app.route("/results")
+def results():
+    result = session.get("result", None)
+    if not result:
+        return redirect(url_for("index"))
+    return render_template("results.html", result=result)
+
+@app.route("/download")
+def download():
+    result = session.get("result", None)
+    if not result:
+        return redirect(url_for("index"))
+    pdf = generate_pdf(result)
+    return send_file(pdf, as_attachment=True, download_name="sentiment_report.pdf", mimetype="application/pdf")
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True)
